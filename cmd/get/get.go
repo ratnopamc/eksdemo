@@ -62,7 +62,7 @@ import (
 func NewGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
-		Short: "view resource(s)",
+		Short: "View resource(s)",
 	}
 
 	// Don't show flag errors for GET without a subcommand
@@ -82,6 +82,8 @@ func NewGetCmd() *cobra.Command {
 	cmd.AddCommand(cloudtrail_event.NewResource().NewGetCmd())
 	cmd.AddCommand(cloudtrail_trail.NewResource().NewGetCmd())
 	cmd.AddCommand(cluster.NewResource().NewGetCmd())
+	cmd.AddCommand(NewGetCognitoCmd())
+	cmd.AddCommand(NewGetAliasCmds(cognitoResources, "cognito-")...)
 	cmd.AddCommand(dns_record.NewResource().NewGetCmd())
 	cmd.AddCommand(ec2_instance.NewResource().NewGetCmd())
 	cmd.AddCommand(ecr_repository.NewResource().NewGetCmd())
@@ -126,6 +128,7 @@ func NewGetCmd() *cobra.Command {
 	cmd.AddCommand(vpc.NewResource().NewGetCmd())
 	cmd.AddCommand(vpc_endpoint.NewResource().NewGetCmd())
 	cmd.AddCommand(NewGetVpcLatticeCmd())
+	cmd.AddCommand(NewGetAliasCmds(vpcLattice, "vpc-lattice-")...)
 	cmd.AddCommand(NewGetAliasCmds(vpcLattice, "vpclattice-")...)
 	cmd.AddCommand(NewGetAliasCmds(vpcLattice, "lattice-")...)
 	cmd.AddCommand(NewGetAliasCmds(vpcLattice, "vpcl-")...)

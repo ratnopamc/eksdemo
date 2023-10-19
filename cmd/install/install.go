@@ -4,6 +4,7 @@ import (
 	"github.com/awslabs/eksdemo/pkg/application"
 	"github.com/awslabs/eksdemo/pkg/application/adot_operator"
 	"github.com/awslabs/eksdemo/pkg/application/appmesh_controller"
+	"github.com/awslabs/eksdemo/pkg/application/argo/argo_cd"
 	"github.com/awslabs/eksdemo/pkg/application/autoscaling/cluster_autoscaler"
 	"github.com/awslabs/eksdemo/pkg/application/autoscaling/karpenter"
 	"github.com/awslabs/eksdemo/pkg/application/aws_fluent_bit"
@@ -14,6 +15,7 @@ import (
 	"github.com/awslabs/eksdemo/pkg/application/external_dns"
 	"github.com/awslabs/eksdemo/pkg/application/falco"
 	"github.com/awslabs/eksdemo/pkg/application/harbor"
+	"github.com/awslabs/eksdemo/pkg/application/headlamp"
 	"github.com/awslabs/eksdemo/pkg/application/keycloak_amg"
 	"github.com/awslabs/eksdemo/pkg/application/kube_state_metrics"
 	"github.com/awslabs/eksdemo/pkg/application/metrics_server"
@@ -27,7 +29,7 @@ import (
 func NewInstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "install",
-		Short:   "install application and any required dependencies",
+		Short:   "Install application and any required dependencies",
 		Aliases: []string{"inst"},
 	}
 
@@ -37,6 +39,8 @@ func NewInstallCmd() *cobra.Command {
 	cmd.AddCommand(NewInstallAckCmd())
 	cmd.AddCommand(NewInstallAliasCmds(ack, "ack-")...)
 	cmd.AddCommand(adot_operator.NewApp().NewInstallCmd())
+	cmd.AddCommand(NewInstallAICmd())
+	cmd.AddCommand(NewInstallAliasCmds(aiApps, "ai-")...)
 	cmd.AddCommand(appmesh_controller.NewApp().NewInstallCmd())
 	cmd.AddCommand(NewInstallArgoCmd())
 	cmd.AddCommand(NewInstallAliasCmds(argoApps, "argo-")...)
@@ -54,12 +58,13 @@ func NewInstallCmd() *cobra.Command {
 	cmd.AddCommand(NewInstallExampleCmd())
 	cmd.AddCommand(NewInstallAliasCmds(exampleApps, "example-")...)
 	cmd.AddCommand(NewInstallAliasCmds(exampleApps, "ex-")...)
-	cmd.AddCommand(external_dns.NewApp().NewInstallCmd())
+	cmd.AddCommand(external_dns.New().NewInstallCmd())
 	cmd.AddCommand(falco.NewApp().NewInstallCmd())
 	cmd.AddCommand(NewInstallFluxCmd())
 	cmd.AddCommand(NewInstallAliasCmds(fluxApps, "flux-")...)
 	cmd.AddCommand(vpc_lattice_controller.NewApp().NewInstallCmd())
 	cmd.AddCommand(harbor.NewApp().NewInstallCmd())
+	cmd.AddCommand(headlamp.NewApp().NewInstallCmd())
 	cmd.AddCommand(NewInstallIngressCmd())
 	cmd.AddCommand(NewInstallAliasCmds(ingressControllers, "ingress-")...)
 	cmd.AddCommand(NewInstallIstioCmd())
@@ -80,6 +85,7 @@ func NewInstallCmd() *cobra.Command {
 	cmd.AddCommand(velero.NewApp().NewInstallCmd())
 
 	// Hidden commands for popular apps without using the group
+	cmd.AddCommand(NewInstallAliasCmds([]func() *application.Application{argo_cd.NewApp}, "argo")...)
 	cmd.AddCommand(NewInstallAliasCmds([]func() *application.Application{cluster_autoscaler.NewApp}, "")...)
 	cmd.AddCommand(NewInstallAliasCmds([]func() *application.Application{ebs_csi.NewApp}, "")...)
 	cmd.AddCommand(NewInstallAliasCmds([]func() *application.Application{karpenter.NewApp}, "")...)

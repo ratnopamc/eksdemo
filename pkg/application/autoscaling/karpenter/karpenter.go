@@ -15,7 +15,7 @@ import (
 // GitHub:  https://github.com/awslabs/karpenter
 // Helm:    https://github.com/awslabs/karpenter/tree/main/charts/karpenter
 // Repo:    https://gallery.ecr.aws/karpenter/controller
-// Version: Latest is v0.28.0 (as of 6/19/23)
+// Version: Latest is v0.31.0 (as of 10/3/23)
 
 func NewApp() *application.Application {
 	options, flags := newOptions()
@@ -81,17 +81,84 @@ func NewApp() *application.Application {
 const irsaPolicyDocument = `
 Version: "2012-10-17"
 Statement:
-- Effect: Allow
-  Resource: "*"
+- Sid: AllowScopedEC2InstanceActions
+  Effect: Allow
+  Resource:
+  - arn:{{ .Partition }}:ec2:{{ .Region }}::image/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}::snapshot/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:spot-instances-request/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:security-group/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:subnet/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:launch-template/*
   Action:
-  # Write Operations
+  - ec2:RunInstances
+  - ec2:CreateFleet
+- Sid: AllowScopedEC2InstanceActionsWithTags
+  Effect: Allow
+  Resource:
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:fleet/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:instance/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:volume/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:network-interface/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:launch-template/*
+  Action:
+  - ec2:RunInstances
   - ec2:CreateFleet
   - ec2:CreateLaunchTemplate
-  - ec2:CreateTags
-  - ec2:DeleteLaunchTemplate
-  - ec2:RunInstances
+  Condition:
+    StringEquals:
+      aws:RequestTag/kubernetes.io/cluster/{{ .ClusterName }}: owned
+    StringLike:
+      aws:RequestTag/karpenter.sh/provisioner-name: "*"
+- Sid: AllowScopedResourceCreationTagging
+  Effect: Allow
+  Resource:
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:fleet/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:instance/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:volume/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:network-interface/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:launch-template/*
+  Action: ec2:CreateTags
+  Condition:
+    StringEquals:
+      aws:RequestTag/kubernetes.io/cluster/{{ .ClusterName }}: owned
+      ec2:CreateAction:
+      - RunInstances
+      - CreateFleet
+      - CreateLaunchTemplate
+    StringLike:
+      aws:RequestTag/karpenter.sh/provisioner-name: "*"
+- Sid: AllowMachineMigrationTagging
+  Effect: Allow
+  Resource: arn:{{ .Partition }}:ec2:{{ .Region }}:*:instance/*
+  Action: ec2:CreateTags
+  Condition:
+    StringEquals:
+      aws:ResourceTag/kubernetes.io/cluster/{{ .ClusterName }}: owned
+      aws:RequestTag/karpenter.sh/managed-by: "{{ .ClusterName }}"
+    StringLike:
+      aws:RequestTag/karpenter.sh/provisioner-name: "*"
+    ForAllValues:StringEquals:
+      aws:TagKeys:
+      - karpenter.sh/provisioner-name
+      - karpenter.sh/managed-by
+- Sid: AllowScopedDeletion
+  Effect: Allow
+  Resource:
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:instance/*
+  - arn:{{ .Partition }}:ec2:{{ .Region }}:*:launch-template/*
+  Action:
   - ec2:TerminateInstances
-  # Read Operations
+  - ec2:DeleteLaunchTemplate
+  Condition:
+    StringEquals:
+      aws:ResourceTag/kubernetes.io/cluster/{{ .ClusterName }}: owned
+    StringLike:
+      aws:ResourceTag/karpenter.sh/provisioner-name: "*"
+- Sid: AllowRegionalReadActions
+  Effect: Allow
+  Resource: "*"
+  Action:
   - ec2:DescribeAvailabilityZones
   - ec2:DescribeImages
   - ec2:DescribeInstances
@@ -101,25 +168,38 @@ Statement:
   - ec2:DescribeSecurityGroups
   - ec2:DescribeSpotPriceHistory
   - ec2:DescribeSubnets
-  - pricing:GetProducts
-  - ssm:GetParameter
-- Effect: Allow
+  Condition:
+    StringEquals:
+      aws:RequestedRegion: "{{ .Region }}"
+- Sid: AllowSSMReadActions
+  Effect: Allow
+  Resource: arn:{{ .Partition }}:ssm:{{ .Region }}::parameter/aws/service/*
   Action:
-  # Write Operations
+  - ssm:GetParameter
+- Sid: AllowPricingReadActions
+  Effect: Allow
+  Resource: "*"
+  Action:
+  - pricing:GetProducts
+- Sid: AllowInterruptionQueueActions
+  Effect: Allow
+  Resource: arn:{{ .Partition }}:sqs:{{ .Region }}:{{ .Account }}:karpenter-{{ .ClusterName }}
+  Action:
   - sqs:DeleteMessage
-  # Read Operations
   - sqs:GetQueueAttributes
   - sqs:GetQueueUrl
   - sqs:ReceiveMessage
-  Resource: arn:{{ .Partition }}:sqs:{{ .Region }}:{{ .Account }}:karpenter-{{ .ClusterName }}
-- Effect: Allow
-  Action:
-  - iam:PassRole
+- Sid: AllowPassingInstanceRole
+  Effect: Allow
   Resource: arn:{{ .Partition }}:iam::{{ .Account }}:role/KarpenterNodeRole-{{ .ClusterName }}
-- Effect: Allow
-  Action:
-  - eks:DescribeCluster
+  Action: iam:PassRole
+  Condition:
+    StringEquals:
+      iam:PassedToService: ec2.amazonaws.com
+- Sid: AllowAPIServerEndpointDiscovery
+  Effect: Allow
   Resource: arn:{{ .Partition }}:eks:{{ .Region }}:{{ .Account }}:cluster/{{ .ClusterName }}
+  Action: eks:DescribeCluster
 `
 
 const valuesTemplate = `---

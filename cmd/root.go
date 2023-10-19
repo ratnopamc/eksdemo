@@ -5,9 +5,11 @@ import (
 	"os"
 
 	"github.com/awslabs/eksdemo/cmd/create"
+	del "github.com/awslabs/eksdemo/cmd/delete"
 	"github.com/awslabs/eksdemo/cmd/get"
 	"github.com/awslabs/eksdemo/cmd/install"
 	"github.com/awslabs/eksdemo/pkg/aws"
+	"github.com/awslabs/eksdemo/pkg/helm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -37,14 +39,16 @@ func preRun(cmd *cobra.Command, args []string) {
 	// cmd.SilenceUsage = true
 
 	aws.Init(profile, region, debug, responseBodyDebug)
+	helm.Init(debug)
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.AddCommand(
+		newCmdCompletion(rootCmd),
 		create.NewCreateCmd(),
-		newCmdDelete(),
+		del.NewDeleteCmd(),
 		get.NewGetCmd(),
 		install.NewInstallCmd(),
 		install.NewUninstallCmd(),

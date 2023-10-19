@@ -7,18 +7,12 @@ import (
 	"github.com/awslabs/eksdemo/pkg/template"
 )
 
-type CloudWatchCollectorOptions struct {
-	resource.CommonOptions
-	ServiceAccount string
-}
-
 func NewPrometheusCloudWatchCollector() *resource.Resource {
-	res := &resource.Resource{
+	return &resource.Resource{
 		Command: cmd.Command{
 			Name:        "prometheus-cloudwatch",
 			Description: "PrometheusCloudWatch Collector",
 			Aliases:     []string{"prom-cw", "promcw"},
-			Args:        []string{"NAME"},
 		},
 
 		Manager: &manifest.ResourceManager{
@@ -26,19 +20,14 @@ func NewPrometheusCloudWatchCollector() *resource.Resource {
 				Template: cloudWatchCollectorTemplate,
 			},
 		},
-	}
 
-	options := &CloudWatchCollectorOptions{
-		CommonOptions: resource.CommonOptions{
-			Namespace:     "adot-system",
-			NamespaceFlag: true,
+		Options: &resource.CommonOptions{
+			Name:           "prometheus-cloudwatch",
+			Namespace:      "adot-system",
+			NamespaceFlag:  true,
+			ServiceAccount: "adot-collector",
 		},
-		ServiceAccount: "adot-collector",
 	}
-
-	res.Options = options
-
-	return res
 }
 
 // https://github.com/aws-observability/aws-otel-community/blob/master/sample-configs/operator/collector-config-cloudwatch.yaml
@@ -406,7 +395,7 @@ spec:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: otel-prometheus-role
+  name: otel-prometheus-cloudwatch-role
 rules:
   - apiGroups:
       - ""
@@ -436,11 +425,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: otel-prometheus-role-binding
+  name: otel-prometheus-cloudwatch-role-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: otel-prometheus-role
+  name: otel-prometheus-cloudwatch-role
 subjects:
   - kind: ServiceAccount
     name: {{ .ServiceAccount }}

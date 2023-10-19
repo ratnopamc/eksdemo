@@ -20,7 +20,7 @@ import (
 func NewCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "create resource(s)",
+		Short: "Create resource(s)",
 	}
 
 	// Don't show flag errors for create without a subcommand
@@ -32,7 +32,11 @@ func NewCreateCmd() *cobra.Command {
 	cmd.AddCommand(addon.NewResource().NewCreateCmd())
 	cmd.AddCommand(amg_workspace.NewResource().NewCreateCmd())
 	cmd.AddCommand(amp_workspace.NewResource().NewCreateCmd())
+	cmd.AddCommand(NewArgoCmd())
+	cmd.AddCommand(NewCreateAliasCmds(argoResources, "argo-")...)
 	cmd.AddCommand(cluster.NewResource().NewCreateCmd())
+	cmd.AddCommand(NewCognitoCmd())
+	cmd.AddCommand(NewCreateAliasCmds(cognitoResources, "cognito-")...)
 	cmd.AddCommand(dns_record.NewResource().NewCreateCmd())
 	cmd.AddCommand(fargate_profile.NewResource().NewCreateCmd())
 	cmd.AddCommand(NewKyvernoCmd())
@@ -43,7 +47,6 @@ func NewCreateCmd() *cobra.Command {
 	cmd.AddCommand(NewCreateAliasCmds(logInsights, "li-")...)
 	cmd.AddCommand(nodegroup.NewResource().NewCreateCmd())
 	cmd.AddCommand(nodegroup.NewSpotResource().NewCreateCmd())
-	cmd.AddCommand(nodegroup.NewGravitonResource().NewCreateCmd())
 	cmd.AddCommand(organization.NewResource().NewCreateCmd())
 	cmd.AddCommand(NewOtelCollectorCmd())
 	cmd.AddCommand(NewCreateAliasCmds(otelCollectors, "otel-collector-")...)

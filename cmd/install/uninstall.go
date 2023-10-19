@@ -4,6 +4,7 @@ import (
 	"github.com/awslabs/eksdemo/pkg/application"
 	"github.com/awslabs/eksdemo/pkg/application/adot_operator"
 	"github.com/awslabs/eksdemo/pkg/application/appmesh_controller"
+	"github.com/awslabs/eksdemo/pkg/application/argo/argo_cd"
 	"github.com/awslabs/eksdemo/pkg/application/autoscaling/cluster_autoscaler"
 	"github.com/awslabs/eksdemo/pkg/application/autoscaling/karpenter"
 	"github.com/awslabs/eksdemo/pkg/application/aws_fluent_bit"
@@ -14,6 +15,7 @@ import (
 	"github.com/awslabs/eksdemo/pkg/application/external_dns"
 	"github.com/awslabs/eksdemo/pkg/application/falco"
 	"github.com/awslabs/eksdemo/pkg/application/harbor"
+	"github.com/awslabs/eksdemo/pkg/application/headlamp"
 	"github.com/awslabs/eksdemo/pkg/application/keycloak_amg"
 	"github.com/awslabs/eksdemo/pkg/application/kube_state_metrics"
 	"github.com/awslabs/eksdemo/pkg/application/metrics_server"
@@ -27,7 +29,7 @@ import (
 func NewUninstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "uninstall",
-		Short:   "uninstall application and delete dependencies",
+		Short:   "Uninstall application and delete dependencies",
 		Aliases: []string{"uninst"},
 	}
 
@@ -37,6 +39,8 @@ func NewUninstallCmd() *cobra.Command {
 	cmd.AddCommand(NewUninstallAckCmd())
 	cmd.AddCommand(NewUninstallAliasCmds(ack, "ack-")...)
 	cmd.AddCommand(adot_operator.NewApp().NewUninstallCmd())
+	cmd.AddCommand(NewUninstallAICmd())
+	cmd.AddCommand(NewUninstallAliasCmds(aiApps, "ai-")...)
 	cmd.AddCommand(appmesh_controller.NewApp().NewUninstallCmd())
 	cmd.AddCommand(NewUninstallArgoCmd())
 	cmd.AddCommand(NewUninstallAliasCmds(argoApps, "argo-")...)
@@ -54,12 +58,13 @@ func NewUninstallCmd() *cobra.Command {
 	cmd.AddCommand(NewUninstallExampleCmd())
 	cmd.AddCommand(NewUninstallAliasCmds(exampleApps, "example-")...)
 	cmd.AddCommand(NewUninstallAliasCmds(exampleApps, "ex-")...)
-	cmd.AddCommand(external_dns.NewApp().NewUninstallCmd())
+	cmd.AddCommand(external_dns.New().NewUninstallCmd())
 	cmd.AddCommand(falco.NewApp().NewUninstallCmd())
 	cmd.AddCommand(NewUninstallFluxCmd())
 	cmd.AddCommand(NewUninstallAliasCmds(fluxApps, "flux-")...)
 	cmd.AddCommand(vpc_lattice_controller.NewApp().NewUninstallCmd())
 	cmd.AddCommand(harbor.NewApp().NewUninstallCmd())
+	cmd.AddCommand(headlamp.NewApp().NewUninstallCmd())
 	cmd.AddCommand(NewUninstallIngressCmd())
 	cmd.AddCommand(NewUninstallAliasCmds(ingressControllers, "ingress-")...)
 	cmd.AddCommand(NewUninstallIstioCmd())
@@ -80,6 +85,7 @@ func NewUninstallCmd() *cobra.Command {
 	cmd.AddCommand(velero.NewApp().NewUninstallCmd())
 
 	// Hidden commands for popular apps without using the group
+	cmd.AddCommand(NewUninstallAliasCmds([]func() *application.Application{argo_cd.NewApp}, "argo")...)
 	cmd.AddCommand(NewUninstallAliasCmds([]func() *application.Application{cluster_autoscaler.NewApp}, "")...)
 	cmd.AddCommand(NewUninstallAliasCmds([]func() *application.Application{ebs_csi.NewApp}, "")...)
 	cmd.AddCommand(NewUninstallAliasCmds([]func() *application.Application{karpenter.NewApp}, "")...)
